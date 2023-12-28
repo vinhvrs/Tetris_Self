@@ -2,7 +2,6 @@ package mino;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
-
 import main.KeyHandler;
 
 import main.PlayManager;
@@ -12,6 +11,11 @@ public class Mino {
     public Block tempB[] = new Block[4];
     public int autoDropCounter = 0;
     public int direction = 1;
+    public Boolean active = true;
+    //public Boolean deactive = false;
+    public int deactiveCount = 0;
+
+    public Boolean LeftCollision, RightCollision, BottomCollision, RotationCollision;
 
     public void create(Color c) {
         b[0] = new Block(c);
@@ -29,11 +33,16 @@ public class Mino {
     }
 
     public void updateXY(int Direction) {
-        this.direction = Direction;
-        for (int i = 0; i < 4; ++i) {
-            b[i].x = tempB[i].x;
-            b[i].y = tempB[i].y;
+
+        CheckRotation();
+        if (!BottomCollision && !LeftCollision && !RightCollision) {
+            this.direction = Direction;
+            for (int i = 0; i < 4; ++i) {
+                b[i].x = tempB[i].x;
+                b[i].y = tempB[i].y;
+            }
         }
+
     }
 
     public void getDirection1() {
@@ -52,66 +61,157 @@ public class Mino {
 
     }
 
-    public void update() {
+    public Boolean CheckCollision() {
+        LeftCollision = false;
+        RightCollision = false;
+        BottomCollision = false;
 
+        CheckCollionBlock();
+
+        for (int i = 0; i < b.length; ++i) {
+            if (b[i].x == PlayManager.left_x) {
+                LeftCollision = true;
+            }
+            if (b[i].x + Block.size == PlayManager.right_x) {
+                RightCollision = true;
+            }
+            if (b[i].y + Block.size == PlayManager.bottom_y) {
+                BottomCollision = true;
+            }
+        }
+        return false;
+    }
+
+    public Boolean CheckRotation() {
+        LeftCollision = false;
+        RightCollision = false;
+        BottomCollision = false;
+
+        CheckCollionBlock();
+
+        for (int i = 0; i < b.length; i++){
+            if (b[i].x - Block.size < PlayManager.left_x) {
+                LeftCollision = true;
+            }
+            if (b[i].x + Block.size > PlayManager.right_x) {
+                RightCollision = true;
+            }
+            if (b[i].y + Block.size > PlayManager.bottom_y) {
+                BottomCollision = true;
+            }
+        }
+
+        return false;
+    }
+
+    public Boolean CheckCollionBlock(){
+        for (int i = 0; i < PlayManager.staticBlock.size(); i++) {
+            for (int j = 0; j < b.length; j++) {
+                if (b[j].x == PlayManager.staticBlock.get(i).x && b[j].y + Block.size == PlayManager.staticBlock.get(i).y) {
+                    BottomCollision = true;
+                }
+                if (b[j].x == PlayManager.staticBlock.get(i).x + Block.size && b[j].y == PlayManager.staticBlock.get(i).y) {
+                    LeftCollision = true;
+                }
+                if (b[j].x == PlayManager.staticBlock.get(i).x - Block.size && b[j].y == PlayManager.staticBlock.get(i).y) {
+                    RightCollision = true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public void deactive() {
+        deactiveCount++;
+        if (deactiveCount == 30) {
+            active = false;
+        }
+    }
+
+    public void update() {
+        //if (!active) {
+            //return;
+        //}
+
+        CheckCollision();
         switch (KeyHandler.keyString) {
             case "enter":
                 switch (direction) {
                     case 1:
-                        getDirection2();
+                        if (!CheckRotation()) {
+
+                            getDirection2();
+                        }
                         break;
                     case 2:
-                        getDirection3();
+                        if (!CheckRotation()) {
+                            getDirection3();
+                        }
                         break;
                     case 3:
-                        getDirection4();
+                        if (!CheckRotation()) {
+                            getDirection4();
+                        }
                         break;
-                    case 4: 
-                        getDirection1();
+                    case 4:
+                        if (!CheckRotation()) {
+                            getDirection1();
+                        }
                         break;
                 }
                 KeyHandler.keyString = "";
                 // autoDropCounter = 0;
                 break;
             case "up":
-                for (int i = 0; i < 4; i++) {
-                b[i].y -= Block.size;
-                }
-                KeyHandler.keyString = "";
-                autoDropCounter = 0;
-                break;
+                // for (int i = 0; i < 4; i++) {
+                // b[i].y -= Block.size;
+                // }
+                // KeyHandler.keyString = "";
+                // autoDropCounter = 0;
+                // break;
             case "down":
-                for (int i = 0; i < 4; i++) {
-                    b[i].y += Block.size;
+                if (!BottomCollision) {
+                    for (int i = 0; i < 4; i++) {
+                        b[i].y += Block.size;
+                    }
+                    KeyHandler.keyString = "";
+                    autoDropCounter = 1;
                 }
-                KeyHandler.keyString = "";
-                autoDropCounter = 0;
                 break;
             case "left":
-                for (int i = 0; i < 4; i++) {
-                    b[i].x -= Block.size;
+                if (!LeftCollision) {
+                    for (int i = 0; i < 4; i++) {
+                        b[i].x -= Block.size;
+                    }
+                    KeyHandler.keyString = "";
+                    autoDropCounter = 1;
                 }
-                KeyHandler.keyString = "";
-                autoDropCounter = 0;
                 break;
             case "right":
-                for (int i = 0; i < 4; i++) {
-                    b[i].x += Block.size;
+                if (!RightCollision) {
+                    for (int i = 0; i < 4; i++) {
+                        b[i].x += Block.size;
+                    }
+                    KeyHandler.keyString = "";
+                    autoDropCounter = 1;
                 }
-                KeyHandler.keyString = "";
-                autoDropCounter = 0;
                 break;
             default:
                 break;
         }
 
-        autoDropCounter++;
-        if (autoDropCounter == PlayManager.dropInterval) {
-            autoDropCounter = 0;
-            for (int i = 0; i < 4; i++) {
-                b[i].y += Block.size;
+        if (!BottomCollision){
+            autoDropCounter++;
+            if (autoDropCounter == PlayManager.dropInterval) {
+                autoDropCounter = 0;
+                for (int i = 0; i < 4; i++) {
+                    b[i].y += Block.size;
+                }
             }
+        } else {
+            deactive();
         }
+            
     }
 
     public void draw(Graphics2D g2) {
